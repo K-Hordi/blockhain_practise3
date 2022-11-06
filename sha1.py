@@ -12,7 +12,6 @@ class GetSHA1Hash:
         preprocessed=[bin(ord(x))[2:].rjust(8, '0') for x in self.data]
         preprocessed="".join(preprocessed)
         preprocessed+='1'
-        self.preprocessed=preprocessed
         return preprocessed
 
     def padding(self):
@@ -39,8 +38,8 @@ class GetSHA1Hash:
         return bits[turns:]+bits[0:turns]
 
     def uppendLenght(self):
-        len_data = len(self.preprocessed)
-        binaryLen = bin(len_data)[2:].ljust(64,'0')
+        len_data = len(self.preprocessed)-1
+        binaryLen = bin(len_data)[2:].rjust(64,'0')
         prepared=self.padded_data+binaryLen
         return prepared
 
@@ -56,6 +55,19 @@ class GetSHA1Hash:
             smallChunks = self.split_chunks(chunk,32)
             
             for i in range(16, 80):
+                
+                # wordA=smallChunks[i - 3]
+                # wordB=smallChunks[i - 8]
+                # wordC=smallChunks[i - 14]
+                # wordD=smallChunks[i - 16]
+                # xorA=int(wordA,2)^int(wordB,2)
+                # xorB=xorA^int(wordC,2)
+                # xorC=xorB^int(wordD,2)
+
+                # binar = str(bin(xorC))[2:]
+                # paddedBin = self.pad(binar,32)
+                # word = self.rotate(paddedBin,5)
+                # smallChunks.append(word)
                 val = functools.reduce(lambda acc, curr: acc^curr,map(lambda e:int(e,2),[smallChunks[i - 3], smallChunks[i - 8], smallChunks[i - 14], smallChunks[i - 16]]))
                 binar = str(bin(val>>0))[2:]
                 paddedBin = self.pad(binar,32)
@@ -63,6 +75,7 @@ class GetSHA1Hash:
                 smallChunks.append(word)
 
             a, b, c, d, e = self.h
+        
 
             for i in range(0, 80):
                 if 0 <= i < 20:
@@ -78,18 +91,21 @@ class GetSHA1Hash:
                     f = b ^ c ^ d
                     k = 0xCA62C1D6
 
-                f>>=0
+                ##f>>=0
 
                 aRot=self.rotate(self.pad(str(bin(a))[2:],32),5)
-                aInt =int(aRot,2)>>0
-                wordInt = int(smallChunks[i],2)>>0
-                t= aInt + f + e + k + wordInt
-                e=d>>0
-                d=c>>0
+                aInt =int(aRot,2)
+                wordInt = int(smallChunks[i],2)
+                t= aInt + f + e + k + wordInt & 0xFFFFFFFF
+                e=d
+                d=c
                 bRot = self.rotate(self.pad(str(bin(b))[2:],32),30)
-                c=int(bRot,2)>>0
-                b=a>>0
-                a=t>>0
+                c=int(bRot,2)
+                b=a
+                a=t
+                #print(f"t={i}\t{hex(a)[2:].rjust(8,'0')}\t{hex(b)[2:].rjust(8,'0')}\t{hex(c)[2:].rjust(8,'0')}\t{hex(d)[2:].rjust(8,'0')}\t{hex(e)[2:].rjust(8,'0')}")
+
+
 
             self.h = (
             self.h[0] + a & 0xFFFFFFFF,
@@ -97,13 +113,22 @@ class GetSHA1Hash:
             self.h[2] + c & 0xFFFFFFFF,
             self.h[3] + d & 0xFFFFFFFF,
             self.h[4] + e & 0xFFFFFFFF,
-        )
-        return "%08x%08x%08x%08x%08x" % tuple(self.h)
+            )
+        return "%08x %08x %08x %08x %08x" % tuple(self.h)
 
 
 def main():
-    hash_input = "abc"
-    print(GetSHA1Hash(hash_input).hashing())
+    hash_input = 'abc'
+    print(f"Input value: {hash_input}")
+    print(f"Result: {GetSHA1Hash(hash_input).hashing()}") #Result: a9993e36 4706816a ba3e2571 7850c26c 9cd0d89d
+    hash_input = 'abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq'
+    print(f"Input value: {hash_input}")
+    print(f"Result: {GetSHA1Hash(hash_input).hashing()}") #Result: 84983e44 1c3bd26e baae4aa1 f95129e5 e54670f1
+    # hash_input = 'a'*1000000
+    # print(f"Input value: {hash_input}")
+    # print(f"Result: {GetSHA1Hash(hash_input).hashing()}") #Result: 34aa973c d4c4daa4 f61eeb2b dbad2731 6534016f
+    
+
  
  
 if __name__ == "__main__":
